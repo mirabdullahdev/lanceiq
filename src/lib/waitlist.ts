@@ -20,7 +20,7 @@ export const waitlistSchema = z.object({
 export type WaitlistInput = z.infer<typeof waitlistSchema>
 
 export type WaitlistResult =
-  | { status: 'joined'; position: number | null; emailed: boolean }
+  | { status: 'joined'; position: number | null; emailed: boolean; code: string | null }
   | { status: 'already'; emailed: boolean }
 
 export class WaitlistError extends Error {}
@@ -35,7 +35,7 @@ export class WaitlistError extends Error {}
  */
 export async function joinWaitlist(input: WaitlistInput): Promise<WaitlistResult> {
   // A filled honeypot gets a silent, successful-looking no-op.
-  if (input.company) return { status: 'joined', position: null, emailed: false }
+  if (input.company) return { status: 'joined', position: null, emailed: false, code: null }
 
   let res: Response
   try {
@@ -66,10 +66,15 @@ export async function joinWaitlist(input: WaitlistInput): Promise<WaitlistResult
     )
   }
 
-  const data = (await res.json().catch(() => ({}))) as { position?: number; emailed?: boolean }
+  const data = (await res.json().catch(() => ({}))) as {
+    position?: number
+    emailed?: boolean
+    code?: string
+  }
   return {
     status: 'joined',
     position: typeof data.position === 'number' ? data.position : null,
     emailed: data.emailed === true,
+    code: typeof data.code === 'string' ? data.code : null,
   }
 }

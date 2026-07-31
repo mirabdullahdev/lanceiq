@@ -292,6 +292,23 @@ function SuccessPanel({
         </div>
       </div>
 
+      {/* Show the code on screen as well as emailing it. Email is not a
+          reliable channel — spam folders, typos, bounces — and the visitor
+          should never lose their discount to a delivery failure. */}
+      {result.status === 'joined' && result.code && (
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-rule bg-mist px-4 py-3">
+          <span className="font-mono text-[0.62rem] tracking-[0.16em] text-forest uppercase">
+            Your code
+          </span>
+          <code className="tabular text-[1.05rem] font-semibold tracking-[0.14em] text-graphite select-all">
+            {result.code}
+          </code>
+          <span className="text-[0.78rem] text-slate">
+            {OFFER.discount} off your first {OFFER.months} months
+          </span>
+        </div>
+      )}
+
       {/* The separate research form. Asked here rather than before signup so
           it costs nothing on the primary conversion, and answered by people
           who have already committed. Different endpoint, different table. */}
