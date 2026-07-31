@@ -1,0 +1,17 @@
+{
+  "name": "LanceWise",
+  "short_name": "LanceWise",
+  "description": "A decision engine for Upwork freelancers.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#f8fff9",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

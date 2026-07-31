@@ -1,0 +1,230 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * LanceWise design tokens
+ * A ledger, not a dashboard: hairlines, mono numerals, one green.
+ * ------------------------------------------------------------------ */
+
+@theme {
+  /* Surfaces */
+  --color-paper: #ffffff;
+  --color-tint: #f8fff9;
+  --color-mist: #f5f9f7;
+  --color-haze: #eaf5ee;
+
+  /* The green. Mint is never used as text on white — it fails contrast.
+     It is a surface and a mark. Forest is the readable one. */
+  --color-mint: #72db97;
+  --color-grass: #4caf50;
+  --color-forest: #2e7d32;
+
+  /* Ink */
+  --color-ink: #1a1a1a;
+  --color-graphite: #2d2d2d;
+  --color-slate: #55605a;
+  --color-rule: rgba(46, 125, 50, 0.14);
+  --color-rule-strong: rgba(46, 125, 50, 0.28);
+
+  /* Warning tone for the burn counter — the only non-green accent */
+  --color-ember: #c2410c;
+
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Organic easing — nothing on this page uses plain ease-in-out. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-drift: cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Shared page rhythm so sections never disagree about gutters. */
+    --gutter: clamp(1.25rem, 5vw, 4rem);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* The fixed header must not swallow anchor targets. */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-graphite);
+    font-variation-settings: 'SOFT' 12, 'WONK' 1;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, branded focus. Never remove this. */
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--color-mint);
+    color: var(--color-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Section eyebrow: `01 / THE PROBLEM` with a hairline that runs to the edge. */
+  .ledger-label {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-forest);
+  }
+  .ledger-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--color-rule-strong), transparent);
+  }
+
+  /* Same rule on the dark closing section. */
+  .ledger-label-invert {
+    color: var(--color-mint);
+  }
+  .ledger-label-invert::after {
+    background: linear-gradient(to right, rgba(114, 219, 151, 0.45), transparent);
+  }
+
+  /* Card with a green cast rather than a grey one.
+     No backdrop-filter here on purpose: most of these sit on flat white or
+     flat tint, where a blur is visually a no-op but still forces a
+     compositing pass per card on every scroll frame. With seven of them in
+     the features grid — each also carrying a 3D tilt transform — that was
+     the single biggest source of scroll jank on the page. */
+  .glass {
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid var(--color-rule);
+    box-shadow:
+      0 1px 2px rgba(46, 125, 50, 0.04),
+      0 12px 32px -18px rgba(46, 125, 50, 0.24);
+  }
+
+  /* The real thing. Only for the few surfaces with something behind them:
+     the hero form over the lattice, and the floating chip over page content. */
+  .glass-blur {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid var(--color-rule);
+    box-shadow:
+      0 1px 2px rgba(46, 125, 50, 0.04),
+      0 12px 32px -18px rgba(46, 125, 50, 0.24);
+  }
+
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Range input. Native elements need vendor pseudo-elements — Tailwind
+     can't reach these, so they live here rather than as arbitrary variants. */
+  .range {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 1.5rem;
+    background: transparent;
+    cursor: grab;
+  }
+  .range:active {
+    cursor: grabbing;
+  }
+
+  .range::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--color-haze);
+    border: 1px solid var(--color-rule);
+  }
+  .range::-moz-range-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--color-haze);
+    border: 1px solid var(--color-rule);
+  }
+
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: -0.5rem;
+    border-radius: 999px;
+    background: var(--color-mint);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px -2px rgba(46, 125, 50, 0.7);
+    transition: transform 0.25s var(--ease-out-quint);
+  }
+  .range::-moz-range-thumb {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: var(--color-mint);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px -2px rgba(46, 125, 50, 0.7);
+    transition: transform 0.25s var(--ease-out-quint);
+  }
+
+  .range:hover::-webkit-slider-thumb,
+  .range:focus-visible::-webkit-slider-thumb {
+    transform: scale(1.18);
+  }
+  .range:hover::-moz-range-thumb,
+  .range:focus-visible::-moz-range-thumb {
+    transform: scale(1.18);
+  }
+}
+
+@utility hairline-grid {
+  /* Faint ledger ruling. Used behind the problem + waitlist sections. */
+  background-image:
+    linear-gradient(to right, var(--color-rule) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-rule) 1px, transparent 1px);
+  background-size: 88px 88px;
+}

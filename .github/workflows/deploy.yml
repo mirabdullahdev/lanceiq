@@ -1,0 +1,105 @@
+name: Deploy to S3 + CloudFront
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required for OIDC. This is what replaces a stored AWS access key.
+  id-token: write
+
+# Queue deploys instead of racing them, and never cancel one mid-upload.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # CloudFront is still gated on this AWS account, so the stack does not
+    # exist yet and the secrets below are unset. Without this guard every push
+    # would fail at the "assume role" step and paint the repo red.
+    #
+    # Set the repository variable AWS_DEPLOY_ENABLED=true once the stack is up
+    # (Settings -> Secrets and variables -> Actions -> Variables) and this
+    # starts deploying on every push to main.
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+
+    environment:
+      name: production
+      url: https://lancewise.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Type errors should fail the deploy, not ship silently.
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npx oxlint --deny-warnings src
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SITE_ORIGIN: ${{ vars.VITE_SITE_ORIGIN }}
+          VITE_WAITLIST_ENDPOINT: ${{ vars.VITE_WAITLIST_ENDPOINT }}
+          VITE_PLAUSIBLE_DOMAIN: ${{ vars.VITE_PLAUSIBLE_DOMAIN }}
+
+      - name: Assume AWS deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      # Two passes, because the two kinds of file want opposite cache rules.
+      #
+      # 1. Everything with a content hash in its filename can be cached for a
+      #    year and never revalidated. A new build produces new filenames.
+      - name: Upload hashed assets (immutable)
+        run: |
+          aws s3 sync dist/ "s3://${{ secrets.S3_BUCKET }}/" \
+            --delete \
+            --exclude "*.html" \
+            --exclude "*.xml" \
+            --exclude "*.txt" \
+            --exclude "*.webmanifest" \
+            --cache-control "public,max-age=31536000,immutable"
+
+      # 2. index.html and the metadata files keep their names forever, so they
+      #    must revalidate or visitors would be pinned to an old build that
+      #    references deleted asset filenames.
+      - name: Upload HTML and metadata (revalidate)
+        run: |
+          aws s3 sync dist/ "s3://${{ secrets.S3_BUCKET }}/" \
+            --exclude "*" \
+            --include "*.html" \
+            --include "*.xml" \
+            --include "*.txt" \
+            --include "*.webmanifest" \
+            --cache-control "public,max-age=0,s-maxage=300,must-revalidate"
+
+      # Assets are content-hashed so only the HTML genuinely needs purging,
+      # but a wildcard counts as a single path against the free tier and
+      # removes any chance of a stale edge object.
+      - name: Invalidate CloudFront
+        run: |
+          ID=$(aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*" \
+            --query 'Invalidation.Id' --output text)
+          echo "Invalidation $ID created"
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --id "$ID"
+          echo "Invalidation $ID complete"
