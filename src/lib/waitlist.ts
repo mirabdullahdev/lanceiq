@@ -1,10 +1,6 @@
 import { z } from 'zod'
 import { WAITLIST_ENDPOINT } from '../config/site'
 
-/* The "what hurts most" question is no longer part of this form. It lives in
-   lib/feedback.ts, posts to its own endpoint, and lands in its own table with
-   no email attached. */
-
 export const waitlistSchema = z.object({
   name: z
     .string()
