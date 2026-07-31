@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { CutText } from '../ui/CutText'
-import { SectionLabel } from '../ui/SectionLabel'
 import { Reveal } from '../ui/Reveal'
 import { useCountUp } from '../../hooks/useCountUp'
 import { BURN_MODEL } from '../../config/site'
@@ -48,11 +47,8 @@ export function Problem() {
       />
 
       <div className="relative mx-auto max-w-[76rem] px-[var(--gutter)]">
-        <Reveal>
-          <SectionLabel index="01">The problem</SectionLabel>
-        </Reveal>
 
-        <div className="mt-10 grid gap-x-16 gap-y-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-start">
+        <div className="grid gap-x-16 gap-y-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-start">
           <div>
             <CutText
               text="Freelancers burn $3,000 a year on connects that never pay off"
@@ -82,10 +78,6 @@ export function Problem() {
           {/* The receipt. Their numbers, their arithmetic, nothing invented. */}
           <Reveal>
             <figure ref={ref} className="glass rounded-2xl p-6 sm:p-8">
-              <figcaption className="mb-6 font-mono text-[0.66rem] tracking-[0.16em] text-forest uppercase">
-                Your burn, in your numbers
-              </figcaption>
-
               <Slider
                 label="Proposals a week"
                 value={proposals}
@@ -127,11 +119,6 @@ export function Problem() {
                   {usd.format(shown)}
                 </motion.span>
               </div>
-
-              <p className="mt-5 text-[0.76rem] leading-relaxed text-slate">
-                Straight arithmetic on Upwork's $0.15 connect price, with no assumptions about your
-                win rate, because we'd only be guessing. Drag the sliders to your real week.
-              </p>
             </figure>
           </Reveal>
         </div>

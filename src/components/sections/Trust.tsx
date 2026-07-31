@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { CutText } from '../ui/CutText'
-import { SectionLabel } from '../ui/SectionLabel'
 import { Reveal, RevealGroup } from '../ui/Reveal'
 import { LatticeMark } from '../ui/Wordmark'
 import { cardIn, fade } from '../../lib/motion'
@@ -34,13 +33,10 @@ export function Trust() {
       />
 
       <div className="relative mx-auto max-w-[76rem] px-[var(--gutter)]">
-        <Reveal>
-          <SectionLabel index="04">Who's building this</SectionLabel>
-        </Reveal>
 
         {/* Headline and story share the full width, so the story reads as a
             column beside the title rather than a narrow strip under it. */}
-        <div className="mt-10 grid gap-x-16 gap-y-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+        <div className="grid gap-x-16 gap-y-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <CutText
             text="LanceWise came out of a simple frustration"
             accent={['frustration']}
@@ -64,7 +60,12 @@ export function Trust() {
         </div>
 
         <Reveal>
-          <h3 className="ledger-label mt-16">Our features</h3>
+          {/* Plain mono eyebrow. The old `.ledger-label` trailed a hairline
+              across the column, which was part of the numbered-index system
+              that has been removed. */}
+          <h3 className="mt-16 font-mono text-[0.68rem] tracking-[0.18em] text-forest uppercase">
+            Our features
+          </h3>
         </Reveal>
 
         <RevealGroup gap={0.1} className="mt-10 grid gap-x-10 gap-y-11 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { CutText } from '../ui/CutText'
-import { SectionLabel } from '../ui/SectionLabel'
 import { Reveal, RevealGroup } from '../ui/Reveal'
 import { WaitlistForm } from '../ui/WaitlistForm'
 import { useCountUp } from '../../hooks/useCountUp'
@@ -18,8 +17,8 @@ const PERKS = [
     v: 'Waitlist goes in before public signup, in the order people joined.',
   },
   {
-    k: 'Shape what gets built',
-    v: 'The problem you flag when you sign up feeds straight into what we build first. Early users set the priorities.',
+    k: 'New features first',
+    v: 'Early access to new capabilities as they roll out, plus premium extras reserved for the people who joined first.',
   },
 ]
 
@@ -43,13 +42,8 @@ export function Waitlist() {
       />
 
       <div className="relative mx-auto max-w-[76rem] px-[var(--gutter)]">
-        <Reveal>
-          <SectionLabel index="05" tone="dark">
-            The offer
-          </SectionLabel>
-        </Reveal>
 
-        <div className="mt-10 grid gap-x-16 gap-y-12 lg:grid-cols-[1fr_minmax(0,30rem)] lg:items-start">
+        <div className="grid gap-x-16 gap-y-12 lg:grid-cols-[1fr_minmax(0,30rem)] lg:items-start">
           <div>
             <CutText
               text={`Join the waitlist to get ${OFFER.discount} for First ${OFFER.months} months`}

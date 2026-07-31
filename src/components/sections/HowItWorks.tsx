@@ -2,8 +2,6 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { CutText } from '../ui/CutText'
-import { SectionLabel } from '../ui/SectionLabel'
-import { Reveal } from '../ui/Reveal'
 import { cn } from '../../lib/cn'
 import { EASE } from '../../lib/motion'
 import { PasteStep, VerdictStep, ProposalStep } from '../demo/steps'
@@ -66,11 +64,8 @@ export function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-24 bg-paper py-[clamp(5rem,11vw,9rem)]">
       <div ref={ref} className="mx-auto max-w-[76rem] px-[var(--gutter)]">
-        <Reveal>
-          <SectionLabel index="02">How it works</SectionLabel>
-        </Reveal>
 
-        <div className="mt-10 max-w-[46rem]">
+        <div className="max-w-[46rem]">
           <CutText
             text="Job Decision Engine"
             accent={['Engine']}

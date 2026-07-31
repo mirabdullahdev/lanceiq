@@ -1,7 +1,6 @@
 import { useState, type ComponentType } from 'react'
 import { motion } from 'framer-motion'
 import { CutText } from '../ui/CutText'
-import { SectionLabel } from '../ui/SectionLabel'
 import { Reveal, RevealGroup } from '../ui/Reveal'
 import { useTilt } from '../../hooks/useTilt'
 import { cardIn } from '../../lib/motion'
@@ -91,11 +90,8 @@ export function Features() {
       className="scroll-mt-24 border-t border-rule bg-paper py-[clamp(5rem,11vw,9rem)]"
     >
       <div className="mx-auto max-w-[76rem] px-[var(--gutter)]">
-        <Reveal>
-          <SectionLabel index="03">What you get</SectionLabel>
-        </Reveal>
 
-        <div className="mt-10 grid gap-x-16 gap-y-6 lg:grid-cols-[1.15fr_1fr] lg:items-end">
+        <div className="grid gap-x-16 gap-y-6 lg:grid-cols-[1.15fr_1fr] lg:items-end">
           <CutText
             text="Turn a guessing game into a repeatable process."
             accent={['process.']}

@@ -128,31 +128,7 @@
     animation: caret-blink 0.9s infinite;
   }
 
-  /* Section eyebrow: `01 / THE PROBLEM` with a hairline that runs to the edge. */
-  .ledger-label {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-forest);
-  }
-  .ledger-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, var(--color-rule-strong), transparent);
-  }
 
-  /* Same rule on the dark closing section. */
-  .ledger-label-invert {
-    color: var(--color-mint);
-  }
-  .ledger-label-invert::after {
-    background: linear-gradient(to right, rgba(114, 219, 151, 0.45), transparent);
-  }
 
   /* Card with a green cast rather than a grey one.
      No backdrop-filter here on purpose: most of these sit on flat white or
