@@ -46,8 +46,9 @@
   }
 
   html {
-    scroll-behavior: smooth;
-    /* The fixed header must not swallow anchor targets. */
+    /* No scroll-behavior: smooth. Lenis owns scrolling now, and the native
+       smooth behaviour fights it — the browser animates to one position
+       while Lenis interpolates to another. See hooks/useSmoothScroll.ts. */
     scroll-padding-top: 6rem;
     -webkit-text-size-adjust: 100%;
   }
@@ -90,9 +91,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
     *,
     *::before,
     *::after {
@@ -103,7 +101,33 @@
   }
 }
 
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
 @layer components {
+  /* Typing caret in the walkthrough. Pure CSS so it costs no JS per frame. */
+  .caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 1px;
+    transform: translateY(0.16em);
+    background: var(--color-forest);
+    /* No steps(): `steps(1, jump-none)` is invalid — jump-none needs n >= 2 —
+       and one invalid token voids the whole `animation` shorthand silently.
+       The keyframes already switch across a single percent, so the blink is
+       crisp without a timing function. */
+    animation: caret-blink 0.9s infinite;
+  }
+
   /* Section eyebrow: `01 / THE PROBLEM` with a hairline that runs to the edge. */
   .ledger-label {
     display: flex;

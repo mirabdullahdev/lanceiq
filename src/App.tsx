@@ -7,8 +7,11 @@ import { Features } from './components/sections/Features'
 import { Trust } from './components/sections/Trust'
 import { Waitlist } from './components/sections/Waitlist'
 import { BurnChip } from './components/ui/BurnChip'
+import { useSmoothScroll } from './hooks/useSmoothScroll'
 
 export default function App() {
+  useSmoothScroll()
+
   return (
     <>
       <a

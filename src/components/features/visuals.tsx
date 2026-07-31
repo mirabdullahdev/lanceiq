@@ -60,9 +60,9 @@ export function VoiceSwap() {
         />
       </div>
       <motion.span
-        initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ duration: 0.75, ease: EASE.quint, delay: 0.9 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: EASE.quint, delay: 0.55 }}
         className="block text-[0.85rem] leading-snug font-medium text-graphite"
       >
         "Every issue links to its source, not a black-box score."

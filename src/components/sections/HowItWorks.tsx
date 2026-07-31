@@ -102,43 +102,39 @@ export function HowItWorks() {
                     setActive(i)
                     setPaused(true)
                   }}
+                  /* The active rail is a border colour change, not a
+                     `layoutId` element. A shared-layout animation makes framer
+                     measure both positions and animate between them — layout
+                     work, every seven seconds, forever. A colour transition
+                     looks near-identical and costs nothing. */
                   className={cn(
-                    'group relative border-l-2 py-5 pr-2 pl-6 text-left transition-colors duration-500',
+                    'group relative border-l-2 py-5 pr-2 pl-6 text-left transition-colors duration-400',
                     '[transition-timing-function:var(--ease-out-quint)]',
-                    on ? 'border-transparent' : 'border-rule hover:border-rule-strong',
+                    on ? 'border-forest' : 'border-rule hover:border-rule-strong',
                   )}
                 >
-                  {/* The rail fill doubles as the dwell timer. */}
-                  {on && (
-                    <motion.span
-                      layoutId="how-rail"
-                      className="absolute top-0 -left-[2px] h-full w-[2px] bg-forest"
-                      transition={{ duration: 0.55, ease: EASE.quint }}
-                    />
-                  )}
                   <span
                     className={cn(
-                      'block font-display text-[1.3rem] font-semibold transition-colors duration-400',
+                      'block font-display text-[1.3rem] font-semibold transition-colors duration-300',
                       on ? 'text-graphite' : 'text-slate group-hover:text-graphite',
                     )}
                   >
                     {step.title}
                   </span>
-                  <AnimatePresence initial={false}>
-                    {on && (
-                      <motion.span
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.5, ease: EASE.quint }}
-                        className="block overflow-hidden"
-                      >
-                        <span className="mt-2.5 block max-w-[34ch] text-[0.88rem] leading-relaxed text-slate">
-                          {step.blurb}
-                        </span>
-                      </motion.span>
+                  {/* Always rendered, dimmed when inactive.
+                      This used to animate `height: 0 -> auto`, which is a
+                      layout animation: it reflows the column on every frame,
+                      every seven seconds. Keeping all three in the flow means
+                      no reflow, no collapse, no layout shift — and you can
+                      read all three steps at once, which is better anyway. */}
+                  <span
+                    className={cn(
+                      'mt-2.5 block max-w-[34ch] text-[0.88rem] leading-relaxed transition-opacity duration-400',
+                      on ? 'text-slate opacity-100' : 'text-slate opacity-45',
                     )}
-                  </AnimatePresence>
+                  >
+                    {step.blurb}
+                  </span>
                 </button>
               )
             })}

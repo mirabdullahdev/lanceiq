@@ -18,7 +18,20 @@ function project(x: number, y: number, z: number) {
  * No <img>, no network request, ~4kb of inline SVG.
  */
 export function LatticeStill({ className }: { className?: string }) {
-  const { nodes, edges } = useMemo(() => buildLattice(), [])
+  const { nodes, edges } = useMemo(() => {
+    const built = buildLattice()
+    /*
+     * Thin the edges for the still.
+     *
+     * This fallback renders where WebGL does not — phones and low-power
+     * machines — and every line is a DOM node the browser has to lay out and
+     * paint. The full graph put ~440 elements on exactly the devices least
+     * able to afford them. Keeping every other edge halves that and the field
+     * still reads as a connected network; nobody sees both versions side by
+     * side, so the small divergence from the WebGL scene costs nothing.
+     */
+    return { nodes: built.nodes, edges: built.edges.filter((_, i) => i % 2 === 0) }
+  }, [])
 
   return (
     <svg

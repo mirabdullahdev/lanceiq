@@ -4,232 +4,377 @@ import * as THREE from 'three'
 import { buildLattice, EXTENT, type Node } from '../../lib/lattice'
 
 /* ------------------------------------------------------------------ *
- * The sweep.
+ * The sweep, done entirely on the GPU.
  *
- * A scanning wave crosses the field roughly every eight seconds. As it
- * passes, each node brightens in proportion to its score — strong matches
- * flare green, weak ones barely register — then fades behind it. That is
- * the Decision Agent, animated: the same field of jobs, sorted in public.
+ * A scanning wave crosses the field every ~8 seconds. As it passes, each
+ * node brightens in proportion to its score — strong matches flare green,
+ * weak ones barely register — then fades behind it. That is the Decision
+ * Agent, animated.
  *
- * The alternative (everything drifting gently forever) was decoration.
- * This is the argument.
+ * The previous version computed all of that in JavaScript: rebuilding 129
+ * instance matrices, lerping 129 colours and rewriting ~600 edge vertex
+ * colours on the main thread every frame, then uploading three buffers.
+ * That is roughly 750 operations per frame competing with React, scrolling
+ * and everything else.
+ *
+ * Now the geometry is uploaded once and never touched. Per frame the CPU
+ * sets a single float — uTime — on each material and damps one group
+ * rotation. Everything else happens in the vertex shader, in parallel, on
+ * hardware built for exactly this.
  * ------------------------------------------------------------------ */
 
-const CYCLE = 8.2 // full loop, including the quiet gap
-const SWEEP = 5.0 // seconds the wave takes to cross
-const LEAD = 1.1 // how far ahead of the wave a node starts to react
-const TRAIL = 3.6 // how far behind it the glow lingers
+/** Must stay in step with the same constants in the shader below. */
+const CYCLE = 8.2
 const SPAN = EXTENT.x + 3
 
-/**
- * Position of the wave at time t. It deliberately keeps travelling past the
- * right edge after the sweep ends, so the trail decays off-screen instead of
- * every node snapping dark at the loop point.
- */
-function sweepX(t: number) {
-  const p = (t % CYCLE) / SWEEP
-  // easeInOutSine while crossing — a constant-speed wipe reads like a
-  // progress bar, which is exactly the wrong association.
-  const eased = p <= 1 ? 0.5 - Math.cos(Math.PI * p) / 2 : 1 + (p - 1) * 0.9
-  return -SPAN + eased * SPAN * 2
-}
+/* Shared GLSL: the wave position at time t, and how strongly a node at x is
+   being touched by it. Injected into all three shaders so the nodes, their
+   haloes and the edges cannot drift out of sync. */
+const SWEEP_GLSL = /* glsl */ `
+  const float CYCLE = ${CYCLE.toFixed(1)};
+  const float SWEEP = 5.0;
+  const float LEAD  = 1.1;
+  const float TRAIL = 3.6;
+  const float SPAN  = ${SPAN.toFixed(4)};
 
-/** 0–1 how strongly a node at `x` is being touched by the wave right now. */
-function reaction(x: number, wave: number) {
-  const dx = wave - x
-  if (dx >= 0) return dx < TRAIL ? 1 - dx / TRAIL : 0 // behind: long tail
-  return -dx < LEAD ? 1 + dx / LEAD : 0 // ahead: short lead-in
-}
-
-/* Scratch objects, allocated once. Building these per node per frame would
-   put thousands of objects a second in front of the GC for no reason. */
-const _m = new THREE.Matrix4()
-const _q = new THREE.Quaternion()
-const _e = new THREE.Euler()
-const _p = new THREE.Vector3()
-const _s = new THREE.Vector3()
-const _c = new THREE.Color()
-
-const PALE_NEAR = new THREE.Color('#c2e4d0')
-const PALE_FAR = new THREE.Color('#e2f2e8')
-const FLARE = new THREE.Color('#43a94b')
-
-/* ------------------------------------------------------------------ *
- * Dim nodes — the jobs. One instanced draw call for all of them.
- * ------------------------------------------------------------------ */
-
-type Prepped = Node & { base: THREE.Color; peak: THREE.Color; scale: number }
-
-function DimNodes({ nodes }: { nodes: Node[] }) {
-  const dim = useMemo<Prepped[]>(() => {
-    return nodes
-      .filter((n) => !n.lit)
-      .map((n) => {
-        // Depth read as colour: nodes further back sit paler, which does the
-        // work a depth-of-field pass would have cost a second render target.
-        const depth = (n.z + EXTENT.z) / (EXTENT.z * 2)
-        const base = PALE_FAR.clone().lerp(PALE_NEAR, depth)
-        // How hard this node flares is its score. That is the whole point:
-        // the wave sorts the field in front of you.
-        const peak = base.clone().lerp(FLARE, 0.12 + n.score * 0.88)
-        return { ...n, base, peak, scale: 0.055 + n.score * 0.075 }
-      })
-  }, [nodes])
-
-  const mesh = useRef<THREE.InstancedMesh>(null)
-
-  // Seed matrices and colours before first paint, or every node flashes at
-  // the origin in white for one frame.
-  useLayoutEffect(() => {
-    paint(mesh.current, dim, 0)
-  }, [dim])
-
-  useFrame(({ clock }) => paint(mesh.current, dim, clock.elapsedTime))
-
-  return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, dim.length]} frustumCulled={false}>
-      <icosahedronGeometry args={[1, 0]} />
-      <meshLambertMaterial transparent opacity={0.92} flatShading />
-    </instancedMesh>
-  )
-}
-
-function paint(mesh: THREE.InstancedMesh | null, dim: Prepped[], t: number) {
-  if (!mesh) return
-  const wave = sweepX(t)
-
-  for (let i = 0; i < dim.length; i++) {
-    const n = dim[i]!
-    const hit = reaction(n.x, wave)
-
-    _p.set(
-      n.x + Math.cos(t * 0.19 + n.phase) * 0.07,
-      n.y + Math.sin(t * 0.28 + n.phase) * 0.12,
-      n.z,
-    )
-    // Nodes swell as the wave reads them, strong matches more than weak ones.
-    _s.setScalar(n.scale * (1 + hit * (0.18 + n.score * 0.5)))
-    // Spin picks up while being read, then settles back to the idle drift.
-    _e.set(n.phase * 0.5, n.phase + t * (0.09 + hit * 0.85), 0)
-    _q.setFromEuler(_e)
-    _m.compose(_p, _q, _s)
-    mesh.setMatrixAt(i, _m)
-
-    _c.copy(n.base).lerp(n.peak, hit)
-    mesh.setColorAt(i, _c)
+  float sweepX(float t) {
+    float p = mod(t, CYCLE) / SWEEP;
+    // easeInOutSine across, then keep travelling so the trail decays off the
+    // right edge instead of every node snapping dark at the loop point.
+    float eased = p <= 1.0 ? 0.5 - cos(3.141592653589793 * p) * 0.5
+                           : 1.0 + (p - 1.0) * 0.9;
+    return -SPAN + eased * SPAN * 2.0;
   }
 
-  mesh.instanceMatrix.needsUpdate = true
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-}
+  float reaction(float x, float wave) {
+    float dx = wave - x;
+    if (dx >= 0.0) return dx < TRAIL ? 1.0 - dx / TRAIL : 0.0; // behind: long tail
+    return -dx < LEAD ? 1.0 + dx / LEAD : 0.0;                 // ahead: short lead
+  }
+`
 
 /* ------------------------------------------------------------------ *
- * Lit nodes — the standing "apply" verdicts. Few enough for real materials.
+ * Nodes
  * ------------------------------------------------------------------ */
 
-function LitNode({ node }: { node: Node }) {
-  const ref = useRef<THREE.Group>(null)
-  const halo = useRef<THREE.Mesh>(null)
+const NODE_VERT = /* glsl */ `
+  attribute mat4 instanceMatrix;
+  attribute float aScore;
+  attribute float aPhase;
+  attribute float aScale;
+  attribute float aLit;
 
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime
-    const hit = reaction(node.x, sweepX(t))
+  uniform float uTime;
+  uniform vec3 uPaleFar;
+  uniform vec3 uPaleNear;
+  uniform vec3 uFlare;
+  uniform vec3 uMint;
 
-    const g = ref.current
-    if (g) {
-      g.position.y = node.y + Math.sin(t * 0.32 + node.phase) * 0.16
-      g.position.x = node.x + Math.cos(t * 0.21 + node.phase) * 0.09
-      g.rotation.y = node.phase + t * 0.16
-      g.rotation.x = Math.sin(t * 0.14 + node.phase) * 0.25
-      g.scale.setScalar(1 + hit * 0.3)
+  varying vec3 vColor;
+  varying float vLight;
+
+  ${SWEEP_GLSL}
+
+  void main() {
+    vec3 base = instanceMatrix[3].xyz;
+    float hit = reaction(base.x, sweepX(uTime));
+
+    // Nodes swell as the wave reads them, strong matches more than weak.
+    float scale = aScale * (1.0 + hit * (0.18 + aScore * 0.5) + aLit * 0.35);
+
+    // Uniform scale, so the instance rotation baked into instanceMatrix is
+    // all the normal needs.
+    vec4 world = instanceMatrix * vec4(position * scale, 1.0);
+
+    // Slow independent drift. Cheap trig, done per-vertex on the GPU.
+    world.x += cos(uTime * 0.19 + aPhase) * 0.07;
+    world.y += sin(uTime * 0.28 + aPhase) * 0.12;
+
+    vec3 n = normalize(mat3(instanceMatrix) * normal);
+    vLight = 0.58 + 0.42 * max(dot(n, normalize(vec3(0.35, 0.7, 0.85))), 0.0);
+
+    // Depth read as colour: nodes further back sit paler. Does the work a
+    // depth-of-field pass would have cost a second render target.
+    float depth = clamp((base.z + ${EXTENT.z.toFixed(3)}) / ${(EXTENT.z * 2).toFixed(3)}, 0.0, 1.0);
+    vec3 pale = mix(uPaleFar, uPaleNear, depth);
+    vec3 peak = mix(pale, uFlare, 0.12 + aScore * 0.88);
+
+    vColor = mix(mix(pale, peak, hit), uMint, aLit);
+
+    gl_Position = projectionMatrix * modelViewMatrix * world;
+  }
+`
+
+const NODE_FRAG = /* glsl */ `
+  precision mediump float;
+  varying vec3 vColor;
+  varying float vLight;
+  uniform float uOpacity;
+  void main() {
+    gl_FragColor = vec4(vColor * vLight, uOpacity);
+  }
+`
+
+function Nodes({ nodes, time }: { nodes: Node[]; time: React.RefObject<number> }) {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+
+  const { geometry, material, count } = useMemo(() => {
+    const geo = new THREE.IcosahedronGeometry(1, 0)
+
+    const n = nodes.length
+    const score = new Float32Array(n)
+    const phase = new Float32Array(n)
+    const scale = new Float32Array(n)
+    const lit = new Float32Array(n)
+
+    nodes.forEach((node, i) => {
+      score[i] = node.score
+      phase[i] = node.phase
+      scale[i] = node.lit ? 0.2 : 0.055 + node.score * 0.075
+      lit[i] = node.lit ? 1 : 0
+    })
+
+    geo.setAttribute('aScore', new THREE.InstancedBufferAttribute(score, 1))
+    geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phase, 1))
+    geo.setAttribute('aScale', new THREE.InstancedBufferAttribute(scale, 1))
+    geo.setAttribute('aLit', new THREE.InstancedBufferAttribute(lit, 1))
+
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: NODE_VERT,
+      fragmentShader: NODE_FRAG,
+      transparent: true,
+      depthWrite: true,
+      uniforms: {
+        uTime: { value: 0 },
+        uOpacity: { value: 0.92 },
+        uPaleFar: { value: new THREE.Color('#e2f2e8') },
+        uPaleNear: { value: new THREE.Color('#c2e4d0') },
+        uFlare: { value: new THREE.Color('#43a94b') },
+        uMint: { value: new THREE.Color('#72db97') },
+      },
+    })
+
+    return { geometry: geo, material: mat, count: n }
+  }, [nodes])
+
+  // Written once. Never touched again — this is the whole point.
+  useLayoutEffect(() => {
+    const m = mesh.current
+    if (!m) return
+    const mat4 = new THREE.Matrix4()
+    const quat = new THREE.Quaternion()
+    const euler = new THREE.Euler()
+    const pos = new THREE.Vector3()
+    const one = new THREE.Vector3(1, 1, 1)
+
+    nodes.forEach((node, i) => {
+      pos.set(node.x, node.y, node.z)
+      euler.set(node.phase * 0.5, node.phase, 0)
+      quat.setFromEuler(euler)
+      mat4.compose(pos, quat, one)
+      m.setMatrixAt(i, mat4)
+    })
+    m.instanceMatrix.needsUpdate = true
+  }, [nodes])
+
+  useLayoutEffect(() => {
+    return () => {
+      geometry.dispose()
+      material.dispose()
     }
+  }, [geometry, material])
 
-    const h = halo.current
-    if (h) {
-      // A slow breath, flaring when the wave confirms it. Never a strobe.
-      // Kept tight: at the old 0.62 these read as bokeh blobs rather than
-      // glow, which is exactly the background-blob look we were avoiding.
-      const breath = 1 + Math.sin(t * 0.9 + node.phase) * 0.14
-      h.scale.setScalar(0.34 * breath * (1 + hit * 0.8))
-      ;(h.material as THREE.MeshBasicMaterial).opacity =
-        0.11 + Math.sin(t * 0.9 + node.phase) * 0.03 + hit * 0.15
-    }
+  useFrame(() => {
+    material.uniforms['uTime']!.value = time.current
   })
 
   return (
-    <group ref={ref} position={[node.x, node.y, node.z]}>
-      <mesh scale={0.2}>
-        <icosahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial
-          color="#72db97"
-          emissive="#3f9c52"
-          emissiveIntensity={0.5}
-          roughness={0.25}
-          metalness={0.05}
-          flatShading
-        />
-      </mesh>
-      {/* Cheap bloom stand-in. Real post-processing costs ~90kb and a second
-          render target for no gain that survives on a white background. */}
-      <mesh ref={halo} scale={0.34}>
-        <sphereGeometry args={[1, 12, 12]} />
-        <meshBasicMaterial color="#72db97" transparent opacity={0.12} depthWrite={false} />
-      </mesh>
-    </group>
+    <instancedMesh
+      ref={mesh}
+      args={[geometry, material, count]}
+      frustumCulled={false}
+      matrixAutoUpdate={false}
+    />
   )
 }
 
 /* ------------------------------------------------------------------ *
- * Edges — the relationships between postings, lighting up as read.
+ * Haloes for the standing "apply" verdicts. Billboarded quads with a
+ * radial falloff — six instances, one draw call, no geometry updates.
  * ------------------------------------------------------------------ */
 
-/* On a white page, "bright" means saturated, not light: an edge fades by
-   approaching the background, not by getting whiter than it. */
-const EDGE_IDLE = new THREE.Color('#dcefe3')
-const EDGE_READ = new THREE.Color('#2f8f45')
+const HALO_VERT = /* glsl */ `
+  attribute mat4 instanceMatrix;
+  attribute float aPhase;
+  uniform float uTime;
+  varying vec2 vUv;
+  varying float vGlow;
 
-function Edges({ nodes, edges }: { nodes: Node[]; edges: [number, number][] }) {
-  const { geometry, xs } = useMemo(() => {
+  ${SWEEP_GLSL}
+
+  void main() {
+    vUv = uv;
+    vec3 base = instanceMatrix[3].xyz;
+    float hit = reaction(base.x, sweepX(uTime));
+
+    // A slow breath, flaring when the wave confirms it. Never a strobe.
+    float breath = 1.0 + sin(uTime * 0.9 + aPhase) * 0.14;
+    vGlow = 0.11 + sin(uTime * 0.9 + aPhase) * 0.03 + hit * 0.15;
+
+    float size = 0.62 * breath * (1.0 + hit * 0.8);
+
+    vec4 mv = modelViewMatrix * vec4(base, 1.0);
+    mv.x += cos(uTime * 0.19 + aPhase) * 0.07;
+    mv.y += sin(uTime * 0.28 + aPhase) * 0.12;
+    mv.xy += position.xy * size;
+
+    gl_Position = projectionMatrix * mv;
+  }
+`
+
+const HALO_FRAG = /* glsl */ `
+  precision mediump float;
+  varying vec2 vUv;
+  varying float vGlow;
+  uniform vec3 uColor;
+  void main() {
+    float d = distance(vUv, vec2(0.5)) * 2.0;
+    float a = smoothstep(1.0, 0.0, d);
+    gl_FragColor = vec4(uColor, a * a * vGlow);
+  }
+`
+
+function Haloes({ nodes, time }: { nodes: Node[]; time: React.RefObject<number> }) {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  const lit = useMemo(() => nodes.filter((n) => n.lit), [nodes])
+
+  const { geometry, material } = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(1, 1)
+    const phase = new Float32Array(lit.length)
+    lit.forEach((n, i) => (phase[i] = n.phase))
+    geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phase, 1))
+
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: HALO_VERT,
+      fragmentShader: HALO_FRAG,
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color('#72db97') },
+      },
+    })
+    return { geometry: geo, material: mat }
+  }, [lit])
+
+  useLayoutEffect(() => {
+    const m = mesh.current
+    if (!m) return
+    const mat4 = new THREE.Matrix4()
+    lit.forEach((n, i) => {
+      mat4.makeTranslation(n.x, n.y, n.z)
+      m.setMatrixAt(i, mat4)
+    })
+    m.instanceMatrix.needsUpdate = true
+  }, [lit])
+
+  useLayoutEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+
+  useFrame(() => {
+    material.uniforms['uTime']!.value = time.current
+  })
+
+  return (
+    <instancedMesh
+      ref={mesh}
+      args={[geometry, material, lit.length]}
+      frustumCulled={false}
+      matrixAutoUpdate={false}
+    />
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * Edges. Static geometry; the wave tint is computed per-vertex on the GPU.
+ * ------------------------------------------------------------------ */
+
+const EDGE_VERT = /* glsl */ `
+  uniform float uTime;
+  uniform vec3 uIdle;
+  uniform vec3 uRead;
+  varying vec3 vColor;
+
+  ${SWEEP_GLSL}
+
+  void main() {
+    float hit = reaction(position.x, sweepX(uTime));
+    vColor = mix(uIdle, uRead, hit);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const EDGE_FRAG = /* glsl */ `
+  precision mediump float;
+  varying vec3 vColor;
+  uniform float uOpacity;
+  void main() { gl_FragColor = vec4(vColor, uOpacity); }
+`
+
+function Edges({
+  nodes,
+  edges,
+  time,
+}: {
+  nodes: Node[]
+  edges: [number, number][]
+  time: React.RefObject<number>
+}) {
+  const { geometry, material } = useMemo(() => {
     const positions = new Float32Array(edges.length * 6)
-    const colors = new Float32Array(edges.length * 6)
-    const xs = new Float32Array(edges.length * 2)
-
     edges.forEach(([a, b], i) => {
       const na = nodes[a]!
       const nb = nodes[b]!
       positions.set([na.x, na.y, na.z, nb.x, nb.y, nb.z], i * 6)
-      colors.set([EDGE_IDLE.r, EDGE_IDLE.g, EDGE_IDLE.b, EDGE_IDLE.r, EDGE_IDLE.g, EDGE_IDLE.b], i * 6)
-      xs[i * 2] = na.x
-      xs[i * 2 + 1] = nb.x
     })
-
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    return { geometry: g, xs }
+
+    /* On a white page "bright" means saturated, not light: an edge fades by
+       approaching the background, not by getting whiter than it. */
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: EDGE_VERT,
+      fragmentShader: EDGE_FRAG,
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+        uOpacity: { value: 0.5 },
+        uIdle: { value: new THREE.Color('#dcefe3') },
+        uRead: { value: new THREE.Color('#2f8f45') },
+      },
+    })
+    return { geometry: g, material: mat }
   }, [nodes, edges])
 
-  useLayoutEffect(() => () => geometry.dispose(), [geometry])
+  useLayoutEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
 
-  useFrame(({ clock }) => {
-    const wave = sweepX(clock.elapsedTime)
-    const attr = geometry.getAttribute('color') as THREE.BufferAttribute
-    const arr = attr.array as Float32Array
-
-    for (let v = 0; v < xs.length; v++) {
-      _c.copy(EDGE_IDLE).lerp(EDGE_READ, reaction(xs[v]!, wave))
-      arr[v * 3] = _c.r
-      arr[v * 3 + 1] = _c.g
-      arr[v * 3 + 2] = _c.b
-    }
-    attr.needsUpdate = true
+  useFrame(() => {
+    material.uniforms['uTime']!.value = time.current
   })
 
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial vertexColors transparent opacity={0.5} depthWrite={false} />
-    </lineSegments>
-  )
+  return <lineSegments args={[geometry, material]} frustumCulled={false} />
 }
 
 /* ------------------------------------------------------------------ *
@@ -238,18 +383,22 @@ function Edges({ nodes, edges }: { nodes: Node[]; edges: [number, number][] }) {
 
 function Scene() {
   const { nodes, edges } = useMemo(() => buildLattice(), [])
-  const lit = useMemo(() => nodes.filter((n) => n.lit), [nodes])
   const group = useRef<THREE.Group>(null)
   const { size } = useThree()
+
+  /* One clock read per frame, shared by all three materials, so the wave
+     cannot desynchronise between nodes, haloes and edges. */
+  const time = useRef(0)
 
   // Fit the lattice to the viewport rather than letting it crop arbitrarily.
   const fit = Math.min(1, size.width / 1180)
 
   useFrame(({ pointer, clock }, delta) => {
+    time.current = clock.elapsedTime
+
     const g = group.current
     if (!g) return
     // Damped parallax — the field leans toward the cursor and settles.
-    // Clamped small: this is depth, not a toy that spins.
     const targetY = pointer.x * 0.2
     const targetX = -pointer.y * 0.12
     const k = 1 - Math.pow(0.0015, delta)
@@ -259,20 +408,14 @@ function Scene() {
   })
 
   return (
-    <>
-      {/* Two lights, not four. Every additional light recompiles into the
-          shader and is paid for by every fragment, every frame. */}
-      <ambientLight intensity={2.1} color="#eef8f1" />
-      <directionalLight position={[4, 6, 8]} intensity={1.25} />
-
-      <group ref={group} scale={fit}>
-        <Edges nodes={nodes} edges={edges} />
-        <DimNodes nodes={nodes} />
-        {lit.map((n, i) => (
-          <LitNode key={i} node={n} />
-        ))}
-      </group>
-    </>
+    /* No lights: the node shader does its own single-direction shading, which
+       is all this flat-shaded look needs. Every real light would otherwise be
+       paid for by every fragment, every frame. */
+    <group ref={group} scale={fit}>
+      <Edges nodes={nodes} edges={edges} time={time} />
+      <Nodes nodes={nodes} time={time} />
+      <Haloes nodes={nodes} time={time} />
+    </group>
   )
 }
 
@@ -280,9 +423,7 @@ export default function HeroField({ active }: { active: boolean }) {
   return (
     <Canvas
       /* `demand` when the hero is off screen: the last frame stays painted
-         and nothing re-renders. Previously this ran a full 60fps render
-         loop for the entire length of the page, which is most of why
-         scrolling felt heavy. */
+         and nothing re-renders. */
       frameloop={active ? 'always' : 'demand'}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       dpr={[1, 1.5]}

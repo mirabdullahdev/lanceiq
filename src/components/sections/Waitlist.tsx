@@ -5,7 +5,6 @@ import { SectionLabel } from '../ui/SectionLabel'
 import { Reveal, RevealGroup } from '../ui/Reveal'
 import { WaitlistForm } from '../ui/WaitlistForm'
 import { useCountUp } from '../../hooks/useCountUp'
-import { LatticeStill } from '../three/LatticeStill'
 import { OFFER, WAITLIST_COUNT } from '../../config/site'
 import { cardIn, fade } from '../../lib/motion'
 
@@ -30,16 +29,14 @@ export function Waitlist() {
       id="waitlist"
       className="relative scroll-mt-24 overflow-hidden border-t border-rule bg-graphite py-[clamp(5rem,11vw,9rem)]"
     >
-      {/* Same lattice, inverted context — the page closes where it opened. */}
+      {/* Texture as two background layers rather than an SVG.
+          This was a 435-element inline <svg> behind a mask-image — hundreds of
+          DOM nodes and a masked compositing layer, for what reads as a field
+          of faint dots. A tiled radial-gradient costs one paint and no DOM. */}
       <div
         aria-hidden="true"
-        /* No mix-blend-mode: it forces this full-section overlay into its own
-           compositing pass on every scroll frame, and against a dark
-           background plain opacity looks identical. */
-        className="absolute inset-0 opacity-[0.18] [mask-image:radial-gradient(90%_80%_at_50%_35%,#000,transparent_80%)]"
-      >
-        <LatticeStill />
-      </div>
+        className="absolute inset-0 bg-[radial-gradient(circle,rgba(114,219,151,0.30)_1px,transparent_1px)] bg-[size:26px_26px] opacity-70 [mask-image:radial-gradient(85%_75%_at_50%_35%,#000,transparent_78%)]"
+      />
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_120%,rgba(114,219,151,0.22),transparent_65%)]"

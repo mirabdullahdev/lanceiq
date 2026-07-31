@@ -54,7 +54,9 @@ export function BurnChip() {
           exit={{ opacity: 0, y: 12, scale: 0.97 }}
           transition={{ duration: 0.5, ease: EASE.quint }}
           aria-label="Your estimated annual connect spend"
-          className="glass-blur fixed bottom-5 left-5 z-40 hidden max-w-[19rem] rounded-2xl p-4 pr-3 sm:block"
+          /* `glass`, not `glass-blur`: this is position:fixed, so a
+             backdrop-filter would re-blur on every scroll frame it is visible. */
+          className="glass fixed bottom-5 left-5 z-40 hidden max-w-[19rem] rounded-2xl bg-white/95 p-4 pr-3 sm:block"
         >
           <div className="flex items-start gap-3">
             <span

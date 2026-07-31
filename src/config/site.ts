@@ -29,13 +29,6 @@ export const WAITLIST_ENDPOINT =
   import.meta.env['VITE_WAITLIST_ENDPOINT'] ??
   'https://ytdqfhkwbnoadimmemdi.supabase.co/functions/v1/subscribe'
 
-/**
- * Separate endpoint writing to a separate table. Anonymous product research,
- * deliberately not joined to a waitlist signup.
- */
-export const FEEDBACK_ENDPOINT =
-  import.meta.env['VITE_FEEDBACK_ENDPOINT'] ??
-  'https://ytdqfhkwbnoadimmemdi.supabase.co/functions/v1/feedback'
 
 /** Plausible is loaded only when this is set. Empty string = no analytics, no cookie banner. */
 export const PLAUSIBLE_DOMAIN = import.meta.env['VITE_PLAUSIBLE_DOMAIN'] ?? ''

@@ -34,8 +34,14 @@ export function Nav() {
         className={cn(
           'transition-[background-color,border-color,backdrop-filter,box-shadow] duration-500',
           '[transition-timing-function:var(--ease-out-quint)]',
+          /* Near-opaque instead of translucent-plus-blur.
+             This bar is position:fixed, so a backdrop-filter made the browser
+             re-blur the strip behind it on EVERY scroll frame, for the whole
+             length of the page. It was the most expensive thing on the site
+             precisely because it never stopped. At 95% white the difference
+             is invisible and the cost is zero. */
           lifted
-            ? 'border-b border-rule bg-white/78 shadow-[0_1px_24px_-14px_rgba(46,125,50,0.5)] backdrop-blur-xl'
+            ? 'border-b border-rule bg-white/95 shadow-[0_1px_24px_-14px_rgba(46,125,50,0.5)]'
             : 'border-b border-transparent bg-transparent',
         )}
       >

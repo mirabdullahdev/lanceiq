@@ -22,16 +22,19 @@ export function PasteStep() {
   useEffect(() => {
     if (reduce) return
     setChars(0)
-    // Types in bursts, the way a paste-then-settle feels, not one char at a time.
+    /* Bigger steps on a slower tick. At 4 chars every 16ms this re-rendered
+       React ~100 times in under two seconds, and did it again every time the
+       walkthrough cycled back round. 10 chars every 40ms looks the same to
+       the eye and costs a third of the renders. */
     const id = window.setInterval(() => {
       setChars((c) => {
         if (c >= JOB_POST.length) {
           window.clearInterval(id)
           return c
         }
-        return Math.min(c + 4, JOB_POST.length)
+        return Math.min(c + 10, JOB_POST.length)
       })
-    }, 16)
+    }, 40)
     return () => window.clearInterval(id)
   }, [reduce])
 
@@ -48,14 +51,9 @@ export function PasteStep() {
 
       <p className="min-h-[11rem] text-[0.92rem] leading-relaxed text-ink">
         {JOB_POST.slice(0, chars)}
-        {!done && (
-          <motion.span
-            aria-hidden="true"
-            animate={{ opacity: [1, 0.15, 1] }}
-            transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
-            className="ml-px inline-block h-[1.05em] w-[2px] translate-y-[0.16em] bg-forest"
-          />
-        )}
+        {/* `caret` is a CSS keyframe animation, not a framer loop: the browser
+            runs it without ticking JavaScript on every frame. */}
+        {!done && <span aria-hidden="true" className="caret" />}
       </p>
     </div>
   )
@@ -177,9 +175,11 @@ export function ProposalStep() {
         {PROPOSAL.map((line, i) => (
           <motion.p
             key={i}
-            initial={reduce ? false : { opacity: 0, y: 10, filter: 'blur(3px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            transition={{ duration: 0.7, ease: EASE.quint, delay: 0.2 + i * 0.35 }}
+            /* No blur: animating a filter re-rasterises the element every
+               frame. Transform and opacity only. */
+            initial={reduce ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: EASE.quint, delay: 0.15 + i * 0.2 }}
             className="text-[0.92rem] leading-relaxed text-ink"
           >
             {line}

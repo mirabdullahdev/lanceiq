@@ -34,9 +34,8 @@ src/
     features/visuals.tsx one small animation per feature card
     sections/            Hero, Problem, HowItWorks, Features, Trust, Waitlist
 supabase/
-  migrations/            waitlist + challenge_responses tables
+  migrations/            the waitlist table
   functions/subscribe    signup endpoint, sends the welcome email
-  functions/feedback     anonymous "what hurts most" endpoint
 infra/
   cloudformation.yml     S3 + CloudFront + the GitHub OIDC deploy role
 ```
@@ -51,7 +50,6 @@ it is all inlined into the browser bundle.
 | ------------------------ | ---------------------------------------------------- |
 | `VITE_SITE_ORIGIN`       | canonical URL, `og:url`, `og:image`                   |
 | `VITE_WAITLIST_ENDPOINT` | Supabase `subscribe` function                         |
-| `VITE_FEEDBACK_ENDPOINT` | Supabase `feedback` function                          |
 | `VITE_PLAUSIBLE_DOMAIN`  | analytics; **leave empty and no script loads at all** |
 
 Changing domain means two files: `.env` and `public/sitemap.xml`.
@@ -105,11 +103,37 @@ Genuinely outstanding:
 - [ ] **Privacy policy and Terms** are `#` placeholders while the form collects
       email addresses. GDPR expects a notice at the point of collection.
 - [ ] **`ALLOWED_ORIGINS`** still includes both localhost ports.
+- [ ] **The optional "Your name" field** on the closing form is collected, used
+      nowhere and stored nowhere. Delete it or store it.
 - [ ] **`og.png`** does not exist — link previews will be blank.
 - [ ] **Resend** unconfigured. Signups are captured; the success copy adapts
       via the `emailed` flag rather than promising an email that won't arrive.
 - [ ] **Test rows** from smoke tests are still in `waitlist`.
 - [ ] **No double opt-in** — anyone can enter someone else's address.
+
+## Performance rules
+
+These are not preferences. Breaking them is how the page got slow the first
+time, and the symptoms are diffuse and hard to trace back.
+
+**Only `opacity` and `transform` are ever animated.** They are the only two
+properties a browser can animate on the compositor. `clip-path`, `filter`,
+`height`, `box-shadow` and `background-color` all force a repaint or a reflow
+on every frame. The reveal animations used to animate `clip-path` per word —
+a nine-word headline meant nine simultaneous repaint loops.
+
+**No `backdrop-filter` on anything `fixed` or `sticky`.** A fixed element with
+a backdrop filter re-blurs its region on every scroll frame for the entire
+length of the page. The nav bar did this and it was the single most expensive
+thing on the site, precisely because it never stopped.
+
+**No layout animations.** No `layoutId`, no `height: auto`. Both make the
+browser measure and reflow mid-animation.
+
+**Nothing per-frame on the main thread in the hero.** The WebGL scene uploads
+its geometry once; the sweep is computed in the vertex shader from a single
+`uTime` uniform. If you find yourself writing a `useFrame` that loops over
+instances, put it in the shader instead.
 
 ## Design notes
 

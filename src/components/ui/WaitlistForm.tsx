@@ -6,7 +6,6 @@ import { Button, Nudge } from './Button'
 import { cn } from '../../lib/cn'
 import { EASE } from '../../lib/motion'
 import { OFFER } from '../../config/site'
-import { ChallengeForm } from './ChallengeForm'
 import {
   joinWaitlist,
   waitlistSchema,
@@ -309,10 +308,6 @@ function SuccessPanel({
         </div>
       )}
 
-      {/* The separate research form. Asked here rather than before signup so
-          it costs nothing on the primary conversion, and answered by people
-          who have already committed. Different endpoint, different table. */}
-      <ChallengeForm className="mt-5" />
     </motion.div>
   )
 }
