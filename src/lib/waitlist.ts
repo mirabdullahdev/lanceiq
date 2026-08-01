@@ -54,6 +54,16 @@ export async function joinWaitlist(input: WaitlistInput): Promise<WaitlistResult
     return { status: 'already', emailed: body.emailed === true }
   }
 
+  /* Rate limited. Without this branch a 429 would fall through to "that
+     address was rejected", sending someone off to re-check an address that
+     was never the problem. */
+  if (res.status === 429) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new WaitlistError(
+      body.error ?? 'Too many signups from this network. Try again in an hour.',
+    )
+  }
+
   if (!res.ok) {
     throw new WaitlistError(
       res.status >= 500

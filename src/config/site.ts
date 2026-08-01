@@ -17,8 +17,11 @@ export const SITE = {
   description:
     'LanceWise tells you which Upwork jobs are worth your connects, writes proposals that sound like you, and tracks what every connect earns. Join the waitlist for 30% off your first 3 months.',
   ogImage: `${SITE_ORIGIN}/og.png`,
-  twitter: 'https://x.com/lancewise',
-  linkedin: 'https://www.linkedin.com/company/lancewise',
+  linkedin: 'https://www.linkedin.com/company/lancewise/',
+  facebook: 'https://www.facebook.com/people/LanceWise/61592863884162/',
+  /* Share-link tracking parameters (igsh, utm_source=qr) stripped: they are
+     artefacts of copying the link from the app, not part of the address. */
+  instagram: 'https://www.instagram.com/lancewise',
 } as const
 
 /**
