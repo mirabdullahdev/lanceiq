@@ -79,12 +79,20 @@ Supabase deploys separately — see [`supabase/README.md`](supabase/README.md).
 
 ## Social card
 
-`public/og.html` is the source for the 1200×630 social image. Open it and
-screenshot the `.card` element at exactly 1200×630, save as `public/og.png`.
-It's deliberately not committed as a binary nobody can edit.
+`public/og.png` is generated, not hand-made:
 
-**This is the one asset not generated yet** — `og:image` currently points at a
-file that doesn't exist. Produce it before sharing any links.
+```bash
+python scripts/make-og.py
+```
+
+Re-run it whenever the headline or the logo changes. It needs only Pillow and
+draws the card directly, so there is no headless browser and no display
+required. It uses Georgia and Segoe UI, which are the fallbacks `og.html`
+already declares for Fraunces and Inter.
+
+`public/og.html` is kept as the reference layout. Screenshotting that at
+exactly 1200×630 is the higher-fidelity route if you have a browser to hand,
+since it uses the real webfonts.
 
 ## Before launch
 

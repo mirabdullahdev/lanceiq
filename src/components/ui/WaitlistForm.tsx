@@ -49,7 +49,6 @@ export function WaitlistForm({ layout = 'inline', className, submitLabel }: Prop
   if (result) return <SuccessPanel result={result} layout={layout} className={className} />
 
   const emailId = `${uid}-email`
-  const nameId = `${uid}-name`
   const errorId = `${uid}-email-error`
 
   return (
@@ -65,18 +64,11 @@ export function WaitlistForm({ layout = 'inline', className, submitLabel }: Prop
         <input id={`${uid}-company`} tabIndex={-1} autoComplete="off" {...register('company')} />
       </div>
 
+      {/* Email only. The name field was removed: it was never stored, and
+          the welcome email stopped greeting by name, so it asked for
+          something that went nowhere. */}
       {layout === 'full' && (
-        <div className="mb-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Your name" hint="optional" htmlFor={nameId}>
-            <input
-              id={nameId}
-              type="text"
-              autoComplete="name"
-              placeholder="Jordan Ellis"
-              className={inputClass}
-              {...register('name')}
-            />
-          </Field>
+        <div className="mb-4">
           <Field label="Email address" htmlFor={emailId}>
             <input
               id={emailId}

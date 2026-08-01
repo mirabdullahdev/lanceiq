@@ -77,8 +77,6 @@ async function rateLimitKey(ip: string): Promise<string> {
 
 type Payload = {
   email?: unknown
-  name?: unknown
-  challenge?: unknown
   company?: unknown
 }
 
@@ -129,10 +127,6 @@ Deno.serve(async (req: Request) => {
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return json({ error: 'Invalid email' }, 400, cors)
   }
-
-  /* `name` may still arrive from the closing form, but nothing consumes it any
-     more: it is not stored, and the welcome email no longer greets by name.
-     The field should come off the form — see README "Before launch". */
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

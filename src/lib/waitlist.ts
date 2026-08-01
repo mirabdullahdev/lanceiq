@@ -2,12 +2,6 @@ import { z } from 'zod'
 import { WAITLIST_ENDPOINT } from '../config/site'
 
 export const waitlistSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .max(80, 'That name is longer than we can store.')
-    .optional()
-    .or(z.literal('')),
   email: z.email('That email address does not look right.').max(254),
   /** Honeypot. Real people never fill this; bots almost always do. */
   company: z.string().max(0).optional().or(z.literal('')),
@@ -38,10 +32,7 @@ export async function joinWaitlist(input: WaitlistInput): Promise<WaitlistResult
     res = await fetch(WAITLIST_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: input.email.trim().toLowerCase(),
-        name: input.name?.trim() || undefined,
-      }),
+      body: JSON.stringify({ email: input.email.trim().toLowerCase() }),
     })
   } catch {
     throw new WaitlistError(
