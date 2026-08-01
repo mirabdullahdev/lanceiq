@@ -146,7 +146,7 @@ export function WaitlistForm({ layout = 'inline', className, submitLabel }: Prop
       </AnimatePresence>
 
       <p className="mt-3 px-1 text-[0.78rem] text-slate">
-        Join the waitlist and get up to {OFFER.discount} off!
+        Join the waitlist and get {OFFER.discount} off!
       </p>
     </form>
   )
