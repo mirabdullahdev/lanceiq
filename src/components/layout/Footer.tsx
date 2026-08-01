@@ -38,8 +38,12 @@ const PAGE_LINKS = [
 ]
 
 const COMPANY_LINKS = [
-  { href: '#', label: 'Privacy policy' },
-  { href: '#', label: 'Terms' },
+  /* Standalone static pages in public/, not routes. Two documents do not
+     justify a router, and as plain HTML they load without the bundle.
+     Explicit .html so they resolve identically on Cloudflare Pages and on
+     S3 + CloudFront, which does not do extensionless matching. */
+  { href: '/privacy.html', label: 'Privacy policy' },
+  { href: '/terms.html', label: 'Terms' },
   { href: 'mailto:hello@lancewise.com', label: 'hello@lancewise.com' },
 ]
 
