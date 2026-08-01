@@ -51,8 +51,8 @@ export function Problem() {
         <div className="grid gap-x-16 gap-y-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-start">
           <div>
             <CutText
-              text="Freelancers burn $3,000 a year on connects that never pay off"
-              accent={['$3,000']}
+              text="Freelancers burn an average of $3000/year on connects"
+              accent={['$3000/year']}
               className="max-w-[17ch] text-[clamp(2rem,4.4vw,3.4rem)] leading-[1.04] font-semibold"
             />
 

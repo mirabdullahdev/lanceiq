@@ -30,79 +30,61 @@ const SOCIALS = [
   { href: SITE.linkedin, label: 'LanceWise on LinkedIn', Icon: LinkedInIcon },
 ]
 
+const PAGE_LINKS = [
+  { href: '#problem', label: 'The problem' },
+  { href: '#how', label: 'How it works' },
+  { href: '#features', label: 'What you get' },
+  { href: '#waitlist', label: 'Join the waitlist' },
+]
+
+const COMPANY_LINKS = [
+  { href: '#', label: 'Privacy policy' },
+  { href: '#', label: 'Terms' },
+  { href: 'mailto:hello@lancewise.com', label: 'hello@lancewise.com' },
+]
+
 export function Footer() {
   return (
-    <footer className="border-t border-rule bg-paper">
-      <div className="mx-auto max-w-[76rem] px-[var(--gutter)] py-14">
-        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-[32ch]">
+    /* Set in Poppins and tightened considerably. The previous version used
+       2.5-unit gaps between links, 14-unit section padding and mono uppercase
+       column headings, which left the columns looking loose and unrelated.
+       Everything here is deliberately close together so each column reads as
+       one block. */
+    <footer className="border-t border-rule bg-paper font-[family-name:var(--font-footer)]">
+      <div className="mx-auto max-w-[76rem] px-[var(--gutter)] py-10">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-[30ch]">
             <Wordmark />
-            <p className="mt-4 text-[0.85rem] leading-relaxed text-slate">
+            <p className="mt-3 text-[0.82rem] leading-snug text-slate">
               A decision engine for freelancers who'd rather know than hope.
             </p>
+            <div className="mt-4 flex gap-2">
+              {SOCIALS.map(({ href, label, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  rel="me noopener noreferrer"
+                  target="_blank"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-rule text-slate transition-colors duration-300 hover:border-rule-strong hover:bg-haze hover:text-forest"
+                >
+                  <Icon />
+                </a>
+              ))}
+            </div>
           </div>
 
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-10 gap-y-6">
-            <ul className="space-y-2.5 text-[0.85rem]">
-              <li className="font-mono text-[0.66rem] tracking-[0.16em] text-forest uppercase">
-                Page
-              </li>
-              <li>
-                <FooterLink href="#problem">The problem</FooterLink>
-              </li>
-              <li>
-                <FooterLink href="#how">How it works</FooterLink>
-              </li>
-              <li>
-                <FooterLink href="#features">What you get</FooterLink>
-              </li>
-              <li>
-                <FooterLink href="#waitlist">Join the waitlist</FooterLink>
-              </li>
-            </ul>
-
-            <ul className="space-y-2.5 text-[0.85rem]">
-              <li className="font-mono text-[0.66rem] tracking-[0.16em] text-forest uppercase">
-                Company
-              </li>
-              <li>
-                <FooterLink href="#">Privacy policy</FooterLink>
-              </li>
-              <li>
-                <FooterLink href="#">Terms</FooterLink>
-              </li>
-              <li>
-                <FooterLink href="mailto:hello@lancewise.com">hello@lancewise.com</FooterLink>
-              </li>
-            </ul>
-
-            <ul className="space-y-2.5">
-              <li className="font-mono text-[0.66rem] tracking-[0.16em] text-forest uppercase">
-                Elsewhere
-              </li>
-              <li className="flex gap-2 pt-0.5">
-                {SOCIALS.map(({ href, label, Icon }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    rel="me noopener noreferrer"
-                    target="_blank"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-rule text-slate transition-colors duration-400 [transition-timing-function:var(--ease-out-quint)] hover:border-rule-strong hover:bg-haze hover:text-forest"
-                  >
-                    <Icon />
-                  </a>
-                ))}
-              </li>
-            </ul>
+          <nav aria-label="Footer" className="flex gap-x-14 gap-y-7 max-sm:flex-col">
+            <FooterColumn title="Page" links={PAGE_LINKS} />
+            <FooterColumn title="Company" links={COMPANY_LINKS} />
           </nav>
         </div>
 
-        <div className="mt-14 flex flex-col gap-4 border-t border-rule pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[0.79rem] text-slate">
+        <div className="mt-9 flex flex-col gap-2 border-t border-rule pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[0.76rem] text-slate">
             © {YEAR} LanceWise. Not affiliated with, endorsed by, or connected to Upwork Global Inc.
           </p>
-          <p className="font-mono text-[0.72rem] tracking-wide text-slate">
+          <p className="text-[0.76rem] text-slate/80">
             Built between client deadlines, which is rather the point.
           </p>
         </div>
@@ -111,11 +93,32 @@ export function Footer() {
   )
 }
 
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string
+  links: { href: string; label: string }[]
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[0.72rem] font-medium tracking-wide text-graphite">{title}</p>
+      <ul className="space-y-1">
+        {links.map((l) => (
+          <li key={l.label}>
+            <FooterLink href={l.href}>{l.label}</FooterLink>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function FooterLink({ href, children }: { href: string; children: string }) {
   return (
     <a
       href={href}
-      className="text-slate transition-colors duration-300 hover:text-graphite hover:underline hover:decoration-rule-strong hover:underline-offset-4"
+      className="inline-block py-0.5 text-[0.82rem] text-slate transition-colors duration-300 hover:text-forest"
     >
       {children}
     </a>

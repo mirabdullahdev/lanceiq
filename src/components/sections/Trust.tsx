@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { CutText } from '../ui/CutText'
 import { Reveal, RevealGroup } from '../ui/Reveal'
-import { LatticeMark } from '../ui/Wordmark'
 import { cardIn, fade } from '../../lib/motion'
 
 /** The four things LanceWise does, stated plainly. */
@@ -59,16 +58,7 @@ export function Trust() {
           </Reveal>
         </div>
 
-        <Reveal>
-          {/* Plain mono eyebrow. The old `.ledger-label` trailed a hairline
-              across the column, which was part of the numbered-index system
-              that has been removed. */}
-          <h3 className="mt-16 font-mono text-[0.68rem] tracking-[0.18em] text-forest uppercase">
-            Our features
-          </h3>
-        </Reveal>
-
-        <RevealGroup gap={0.1} className="mt-10 grid gap-x-10 gap-y-11 sm:grid-cols-2 lg:grid-cols-4">
+        <RevealGroup gap={0.1} className="mt-16 grid gap-x-10 gap-y-11 sm:grid-cols-2 lg:grid-cols-4">
           {CAPABILITIES.map(({ part, detail }, i) => (
             <motion.div
               key={part}
@@ -89,23 +79,6 @@ export function Trust() {
           </p>
         </Reveal>
 
-        {/* The place a testimonial wall would go, and why there isn't one.
-            Set as a full-width pull quote rather than a small card, because
-            it is the most load-bearing sentence in the section. */}
-        <Reveal>
-          <figure className="mt-16 grid gap-8 border-t border-rule pt-12 lg:grid-cols-[1fr_17rem] lg:gap-16">
-            <blockquote className="font-display text-[clamp(1.4rem,2.7vw,2.05rem)] leading-[1.32] font-medium text-graphite">
-              There are no testimonials on this page yet, because nobody outside our testing group
-              has used it. When there are quotes here, they'll be real people with real names who
-              agreed to be quoted.
-            </blockquote>
-            <figcaption className="text-[0.85rem] leading-relaxed text-slate lg:pt-2">
-              <LatticeMark className="h-6 w-6" />
-              <span className="mt-4 block font-medium text-graphite">The LanceWise team</span>
-              <span className="mt-1 block">Still small enough to reply to you personally</span>
-            </figcaption>
-          </figure>
-        </Reveal>
       </div>
     </section>
   )

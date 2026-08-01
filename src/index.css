@@ -31,6 +31,9 @@
   --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
   --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+  /* Footer only. Poppins' geometric circles give the dense link columns a
+     cleaner rhythm than Inter at small sizes. */
+  --font-footer: 'Poppins', 'Inter Variable', system-ui, sans-serif;
 
   /* Organic easing — nothing on this page uses plain ease-in-out. */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);

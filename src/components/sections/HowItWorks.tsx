@@ -18,7 +18,7 @@ const STEPS = [
     id: 'verdict',
     title: 'Read the verdict',
     blurb:
-      'Nine-plus signals, from client history to budget fit against your rate to how crowded the post already is, collapse into one call with the reasoning shown.',
+      'Nine-plus signals, from client history to budget fit against your rate to how crowded the post already is, collapse into one call with the reasoning shown. Data from winning proposals feeds the engine, so it learns what actually converts.',
     Panel: VerdictStep,
   },
   {

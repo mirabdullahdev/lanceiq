@@ -59,10 +59,10 @@ export function Hero() {
           transition={{ duration: 0.85, ease: EASE.quint, delay: 0.7 }}
           className="mt-7 max-w-[46ch] text-[clamp(1rem,1.5vw,1.15rem)] leading-relaxed text-slate"
         >
-          LanceWise reads a job post and tells you whether it's worth your connects, drafts the
-          proposal in your own voice, and keeps a running tally of what every connect earned you.
-          Join the waitlist and lock in {OFFER.discount} off for your first{' '}
-          {OFFER.months} months.
+          LanceWise is a platform for freelancers that helps you spend your connects wisely. It
+          analyzes every job post, tells you if it's worth applying to, drafts proposals in your own
+          writing style, and tracks what every connect earns over time. Join the waitlist today and
+          lock in {OFFER.discount} off your first {OFFER.months} months.
         </motion.p>
 
         <motion.div

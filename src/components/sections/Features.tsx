@@ -77,7 +77,7 @@ const FEATURES: Feature[] = [
     title: 'Nothing connected to your account',
     benefit: 'Your Upwork account is never in our hands.',
     detail:
-      "There's no OAuth, no scraping, no browser extension reading your dashboard. You paste a job post. That's the entire integration surface.",
+      'Please note that LanceWise is not connected to your Upwork account in any way.',
     Visual: SafeShield,
     span: 'lg:col-span-2',
   },
@@ -136,6 +136,11 @@ function FeatureCard({ feature, depth }: { feature: Feature; depth: number }) {
         style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
         className={cn(
           'glass flex h-full flex-col rounded-2xl p-6 sm:p-7',
+          /* The card tilts to the pointer, so it reads as an object you are
+             manipulating. A text I-beam over it suggests an editable field,
+             which is the wrong affordance. Text stays selectable — only the
+             cursor shape changes. */
+          'cursor-default',
           'transition-[box-shadow,border-color] duration-500 [transition-timing-function:var(--ease-out-quint)]',
           'group-hover:border-rule-strong group-hover:shadow-[0_1px_2px_rgba(46,125,50,0.05),0_28px_54px_-26px_rgba(46,125,50,0.42)]',
         )}
