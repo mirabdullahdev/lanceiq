@@ -7,7 +7,8 @@ import { cardIn, fade } from '../../lib/motion'
 const CAPABILITIES = [
   {
     part: 'Job decisions',
-    detail: 'Paste a Job Post, then let our agent recommend you with the reasoning behind it.',
+    detail:
+      'Paste a Job Post, then let our agent give you a recommendation with the reasoning behind it.',
   },
   {
     part: 'Proposal drafts',
